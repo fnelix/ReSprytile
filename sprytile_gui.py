@@ -8,7 +8,7 @@ from math import floor, ceil, copysign
 from bgl import *
 from bpy.props import *
 from mathutils import Vector, Matrix
-from . import sprytile_utils, sprytile_modal
+from . import sprytile_utils, sprytile_modal, sprytile_preview
 from gpu_extras.batch import batch_for_shader
 from sprytile_tools.tool_build import ToolBuild
 from sprytile_tools.tool_paint import ToolPaint
@@ -27,7 +27,7 @@ flat_shader_info.fragment_out(0, 'VEC4', 'frag_color')
 # Set Vertex and Fragment Source
 flat_shader_info.vertex_source(
     '''
-    vec4 o_color;
+    out vec4 o_color;
     void main()
     {
         o_color = i_color;
@@ -38,7 +38,7 @@ flat_shader_info.vertex_source(
 
 flat_shader_info.fragment_source(
     '''
-    vec4 o_color;
+    in vec4 o_color;
     void main()
     {
         frag_color = o_color;
@@ -65,8 +65,8 @@ image_shader_info.fragment_out(0, 'VEC4', 'frag_color')
 # Set Vertex and Fragment Source
 image_shader_info.vertex_source(
     '''
-    vec2 o_uv;
-    vec4 o_color;
+    out vec2 o_uv;
+    out vec4 o_color;
     void main()
     {
         o_uv = i_uv;
@@ -78,8 +78,8 @@ image_shader_info.vertex_source(
 
 image_shader_info.fragment_source(
     '''
-    vec4 o_color;
-    vec2 o_uv;
+    in vec4 o_color;
+    in vec2 o_uv;
     void main()
     {
         vec4 col = texture(u_image, o_uv) * o_color;
@@ -89,6 +89,7 @@ image_shader_info.fragment_source(
 )
 
 image_shader = gpu.shader.create_from_info(image_shader_info)
+
 
 
 class SprytileGuiData(bpy.types.PropertyGroup):
