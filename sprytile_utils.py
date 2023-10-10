@@ -75,7 +75,7 @@ def get_current_grid_vectors(scene, with_rotation=True):
 
 
 def grid_is_single_pixel(grid):
-    is_pixel = grid.grid[0] == 1 and grid.grid[1] == 1 and grid_no_spacing(grid)
+    is_pixel = grid.grid[0] == 0 and grid.grid[1] == 0 and grid_no_spacing(grid)
     return is_pixel
 
 
@@ -1234,6 +1234,8 @@ class UTIL_OP_SprytileReloadImages(bpy.types.Operator):
                 if area.type in {'VIEW_3D', 'IMAGE_EDITOR'}:
                     area.tag_redraw()
         return {'FINISHED'}
+    
+
 
 
 class UTIL_OP_SprytileReloadImagesAuto(bpy.types.Operator):
@@ -1701,6 +1703,16 @@ class UTIL_OP_SprytileTilePicker(bpy.types.Operator):
             return {'FINISHED'}
 
         if event.type == 'LEFTMOUSE' and event.value == 'PRESS':
+            if context.preferences.inputs.use_mouse_emulate_3_button:
+                mouse_event = 'RIGHTMOUSE'
+            else:
+                mouse_event = 'LEFTMOUSE'
+        else:
+            mouse_event = event.type
+            
+        if mouse_event == 'LEFTMOUSE':
+            self.tile_pick(context, event)
+        elif mouse_event == 'RIGHTMOUSE':
             self.tile_pick(context, event)
 
         return {'RUNNING_MODAL'}
