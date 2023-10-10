@@ -8,7 +8,7 @@ from math import floor, ceil, copysign
 from bgl import *
 from bpy.props import *
 from mathutils import Vector, Matrix
-from . import sprytile_utils, sprytile_modal
+from . import sprytile_utils, sprytile_modal, sprytile_preview
 from gpu_extras.batch import batch_for_shader
 from sprytile_tools.tool_build import ToolBuild
 from sprytile_tools.tool_paint import ToolPaint
@@ -42,7 +42,7 @@ def detect_system():
 system_info = detect_system()
 
 if system_info['is_apple_silicon']:
-    print("Running on Apple Silicon (e.g., Apple M1), not importing Sprytile_Preview.")
+    print("Running on Apple Silicon (e.g., Apple M1)")
     # Define ShaderCreateInfo for Flat Shader
     flat_shader_info = gpu.types.GPUShaderCreateInfo()
 
@@ -56,24 +56,24 @@ if system_info['is_apple_silicon']:
 
     # Set Vertex and Fragment Source
     flat_shader_info.vertex_source(
-    '''
-    vec4 o_color;
-    void main()
-    {
-        o_color = i_color;
-        gl_Position = u_modelViewProjectionMatrix * vec4(i_position, 0.0, 1.0);
-    }
-    '''
+        '''
+        out vec4 o_color;
+        void main()
+        {
+            o_color = i_color;
+            gl_Position = u_modelViewProjectionMatrix * vec4(i_position, 0.0, 1.0);
+        }
+        '''
     )
 
     flat_shader_info.fragment_source(
-    '''
-    vec4 o_color;
-    void main()
-    {
-        frag_color = o_color;
-    }
-    '''
+        '''
+        in vec4 o_color;
+        void main()
+        {
+            frag_color = o_color;
+        }
+        '''
     )
 
     flat_shader = gpu.shader.create_from_info(flat_shader_info)
@@ -95,8 +95,8 @@ if system_info['is_apple_silicon']:
     # Set Vertex and Fragment Source
     image_shader_info.vertex_source(
         '''
-        vec2 o_uv;
-        vec4 o_color;
+        out vec2 o_uv;
+        out vec4 o_color;
         void main()
         {
             o_uv = i_uv;
@@ -108,8 +108,8 @@ if system_info['is_apple_silicon']:
 
     image_shader_info.fragment_source(
         '''
-        vec4 o_color;
-        vec2 o_uv;
+        in vec4 o_color;
+        in vec2 o_uv;
         void main()
         {
             vec4 col = texture(u_image, o_uv) * o_color;
@@ -119,6 +119,7 @@ if system_info['is_apple_silicon']:
     )
 
     image_shader = gpu.shader.create_from_info(image_shader_info)
+
 
 
     class SprytileGuiData(bpy.types.PropertyGroup):
@@ -1158,8 +1159,6 @@ if system_info['is_apple_silicon']:
         
 else:
     print("Unknown system architecture.")
-    import sprytile_preview
-
 
     # Shaders
     flat_vertex_shader = '''
@@ -2259,4 +2258,3 @@ else:
 
     if __name__ == '__main__':
         register()
-
