@@ -34,11 +34,13 @@ Download from [releases](https://github.com/ologon/Sprytile/releases).
 * Showcase your work or ask for support in the [forum](https://chemikhazi.itch.io/sprytile/community)
 
 ### Issue/Feature requests:
-
 Bug reports for this port can be submitted to [GitHub issues](https://github.com/ionthedev/ReSprytile/issues)
+
+### Known Issues
+* Zooming too much can result in your palette dispearing. SAVE and RE-OPEN your blend file to get your palette back. Palette Position Reset button coming soon.
 
 ### Acknowledgments:
 
 The bulk of Blender 2.8 porting work by was done by [Yonnji](https://github.com/Yonnji) and [ologon](https://github.com/ologon), with additional contributions by [brandy92](https://github.com/brandy92)
 
-I simply just picked up the torch for this project.
+I simply just picked up the torch for this project, Python is not my native language and I am learning it as I develope this fork. 
