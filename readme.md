@@ -21,7 +21,7 @@
 
 ### Download:
 
-Download from [releases](https://github.com/ologon/Sprytile/releases).
+Download from [releases](https://github.com/ionthedev/ReSprytile/releases).
 
 ### Getting Started:
 
