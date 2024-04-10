@@ -1,3 +1,7 @@
+### BLENDER 4.x NOTICE: 
+The plugin has issues with blender 4.X. With work, personal business and being a new father, I am unable to take the update the plugin to work with Blender 4.X, Please feel free to create merge requests to improve the project and keep the original Sprytile plugin alive! FOSS FOR LIFE
+
+
 <p align="center">
     <img src="sprytile-logo.png?raw=true" height="100px"/>
     <h1 align="center">ReSprytile</h1>
