@@ -2,7 +2,7 @@ bl_info = {
     "name": "ReSprytile",
     "author": "Jeiel Aranal | Maintained by IonTheDev, Taron686, nurjeff",
     # Final version number must be two numerals to support x.x.00
-    "version": (1, 0, 20),
+    "version": (1, 0, 3),
     "blender": (4, 1, 0),
     "description": "A utility for creating tile based low spec scenes with paint/map editor tools",
     "location": "View3D > UI panel > ReSprytile",
