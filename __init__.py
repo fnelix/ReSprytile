@@ -2,7 +2,7 @@ bl_info = {
     "name": "ReSprytile",
     "author": "Jeiel Aranal | Maintained by IonTheDev, Taron686, nurjeff",
     # Final version number must be two numerals to support x.x.00
-    "version": (1, 0, 1),
+    "version": (1, 0, 20),
     "blender": (4, 1, 0),
     "description": "A utility for creating tile based low spec scenes with paint/map editor tools",
     "location": "View3D > UI panel > ReSprytile",
@@ -684,7 +684,7 @@ class PROP_OP_SprytilePropsSetup(bpy.types.Operator):
         if sprytile_gui.system_info['is_apple_silicon']:
             bpy.types.Scene.sprytile_ui = bpy.props.PointerProperty(type=sprytile_gui.spryTile_OS_Apple.SprytileGuiData)
         else:
-            bpy.types.Scene.sprytile_ui = bpy.props.PointerProperty(type=sprytile_gui.spryTile_OS_EverthingElse.SprytileGuiData)
+            bpy.types.Scene.sprytile_ui = bpy.props.PointerProperty(type=sprytile_gui.spryTile_OS_EverythingElse.SprytileGuiData)
 
         bpy.types.Object.sprytile_gridid = IntProperty(
             name="Grid ID",
