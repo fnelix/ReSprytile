@@ -1,14 +1,14 @@
 ### BLENDER 4.x NOTICE: 
-The plugin has issues with blender 4.X. With work, personal business and being a new father, I am unable to take the update the plugin to work with Blender 4.X, Please feel free to create merge requests to improve the project and keep the original Sprytile plugin alive! FOSS FOR LIFE
+The plugin has been updated to work with 4.x, personally tested on Blender 4.1 on Ubuntu Linux. If you see anything misbehaving, please submit an issue.
 
 
 <p align="center">
     <img src="sprytile-logo.png?raw=true" height="100px"/>
     <h1 align="center">ReSprytile</h1>
     <h2 align="center">Fork of Sprytile Painter</h2>
-    <h3 align="center">Updated for Blender 3.6</h3>
+    <h3 align="center">Updated for Blender 4.1</h3>
     <h4 align="center">
-        A <img src="https://download.blender.org/institute/logos/blender-socket.png" height="20px"/> addon for creating tile based low spec 3D scenes. (Unofficial port for blender 3.6)
+        A <img src="https://download.blender.org/institute/logos/blender-socket.png" height="20px"/> addon for creating tile based low spec 3D scenes. (Unofficial port for blender 4.1)
     </h4>
   <br>
 </p>
@@ -45,6 +45,10 @@ Bug reports for this port can be submitted to [GitHub issues](https://github.com
 
 ### Acknowledgments:
 
-The bulk of Blender 2.8 porting work by was done by [Yonnji](https://github.com/Yonnji) and [ologon](https://github.com/ologon), with additional contributions by [brandy92](https://github.com/brandy92)
+The bulk of Blender 2.8 porting work by was done by [Yonnji](https://github.com/Yonnji) and [ologon](https://github.com/ologon), with additional contributions by [brandy92](https://github.com/brandy92). 
+The bulk of the Blender 3.x porting work was done by [IonTheDev](https://github.com/IonTheDev). 
+The bulk of the Blender 4.x porting was done by [Taron686](https://github.com/Taron686)
+
+
 
 I simply just picked up the torch for this project, Python is not my native language and I am learning it as I develope this fork. 
