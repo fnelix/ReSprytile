@@ -14,69 +14,9 @@ from sprytile_tools.tool_build import ToolBuild
 from sprytile_tools.tool_paint import ToolPaint
 
 import sprytile_preview
-import bgl
-# Shaders
-flat_vertex_shader = '''
-    uniform mat4 u_modelViewProjectionMatrix;
 
-    in vec2 i_position;
-    in vec4 i_color;
-
-    out vec4 o_color;
-
-    void main()
-    {
-        o_color = i_color;
-        gl_Position = u_modelViewProjectionMatrix * vec4(i_position, 0.0, 1.0);
-    }
-'''
-
-flat_fragment_shader = '''
-    in vec4 o_color;
-    out vec4 frag_color;
-
-    void main()
-    {
-        frag_color = o_color;
-    }
-'''
-
-image_vertex_shader = '''
-    uniform mat4 u_modelViewProjectionMatrix;
-
-    in vec2 i_position;
-    in vec4 i_color;
-    in vec2 i_uv;
-
-    out vec2 o_uv;
-    out vec4 o_color;
-
-    void main()
-    {
-        o_uv = i_uv;
-        o_color = i_color;
-        gl_Position = u_modelViewProjectionMatrix * vec4(i_position, 0.0, 1.0);
-    }
-'''
-
-image_fragment_shader = '''
-    uniform sampler2D u_image;
-    uniform float u_correct;
-
-    in vec2 o_uv;
-    in vec4 o_color;
-    out vec4 frag_color;
-
-    void main()
-    {
-        vec4 col = texture(u_image, o_uv) * o_color;
-        frag_color = pow(col, vec4(u_correct));
-    }
-'''
-
-flat_shader = gpu.types.GPUShader(flat_vertex_shader, flat_fragment_shader)
-image_shader = gpu.types.GPUShader(image_vertex_shader, image_fragment_shader)
-
+flat_shader = gpu.shader.from_builtin("FLAT_COLOR", config='DEFAULT')
+image_shader = gpu.shader.from_builtin("IMAGE_COLOR", config='DEFAULT')
 
 
 class SprytileGuiData(bpy.types.PropertyGroup):
@@ -631,31 +571,40 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         ]
         vercol = (color,)*5
 
-        batch = batch_for_shader(flat_shader, 'LINE_STRIP', { "i_position": sel_vtx, "i_color": vercol})
-        flat_shader.uniform_float("u_modelViewProjectionMatrix", mvpMat)
-        batch.draw(flat_shader)
+        with gpu.matrix.push_pop():
+            gpu.matrix.load_identity()
+            gpu.matrix.load_projection_matrix(mvpMat)
+
+            batch = batch_for_shader(flat_shader, 'LINE_STRIP', { "pos": sel_vtx, "color": vercol})
+            batch.draw(flat_shader)
 
     @staticmethod
     def draw_full_quad(pos, mvpMat, color = (1, 1, 1, 1)):
         flat_shader.bind()
         
         vercol = (color,)*4
-        batch = batch_for_shader(flat_shader, 'TRI_STRIP', { "i_position": pos, "i_color": vercol})
-        flat_shader.uniform_float("u_modelViewProjectionMatrix", mvpMat)
-        batch.draw(flat_shader)
+
+        with gpu.matrix.push_pop():
+            gpu.matrix.load_identity()
+            gpu.matrix.load_projection_matrix(mvpMat)
+
+            batch = batch_for_shader(flat_shader, 'TRI_STRIP', { "pos": pos, "color": vercol})
+            batch.draw(flat_shader)
 
     @staticmethod
     def draw_full_tex_quad(pos, mvpMat, textureUnit, gammaCorrect = False, uvs = None, color = (1, 1, 1, 1)):
         image_shader.bind()
 
-        vercol = (color,)*4
         if not uvs:
             uvs = ((0,0),(1,0),(0,1),(1,1))
-        batch = batch_for_shader(image_shader, 'TRI_STRIP', { "i_position": pos, "i_color": vercol, "i_uv": uvs})
-        image_shader.uniform_float("u_modelViewProjectionMatrix", mvpMat)
-        image_shader.uniform_int("u_image", textureUnit)
-        image_shader.uniform_float("u_correct", gammaCorrect and (1.0/2.2) or 1.0)
-        batch.draw(image_shader)
+
+        with gpu.matrix.push_pop():
+            gpu.matrix.load_identity()
+            gpu.matrix.load_projection_matrix(mvpMat)
+
+            batch = batch_for_shader(image_shader, 'TRI_STRIP', { "pos": pos, "texCoord": uvs})
+            image_shader.uniform_float("color", color)
+            batch.draw(image_shader)
 
     @staticmethod
     def draw_offscreen(context):
@@ -677,8 +626,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         {
             "pos": ((x, y), (tex_size[0], y), (x, tex_size[1]), (tex_size[0], tex_size[1])),
             "texCoord": ((0, 0), (1, 0), (1, 1), (0, 1)),
-        },
-    )
+        },)
 
         gpu.state.depth_test_set("NONE")         #bgl.glDisable(bgl.GL_DEPTH_TEST)
         gpu.state.blend_set('ALPHA')            #bgl.glEnable(bgl.GL_BLEND)
@@ -748,16 +696,25 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
             # In pixel grid, draw cross hair
             if is_pixel_grid and VIEW3D_OP_SprytileGui.is_moving is False:
                 flat_shader.bind()
-                flat_shader.uniform_float("u_modelViewProjectionMatrix", mvp_mat)
+
                 vtx_pos = ((0, int(cursor_pos.y + 1)), (tex_size[0], int(cursor_pos.y + 1)))
                 vtx_col = ((1.0, 1.0, 1.0, 0.5),)*2
-                batch = batch_for_shader(flat_shader, 'LINES', { "i_position": vtx_pos, "i_color": vtx_col})
-                flat_shader.uniform_float("u_modelViewProjectionMatrix", mvp_mat)
-                batch.draw(flat_shader)
+
+                with gpu.matrix.push_pop():
+                    gpu.matrix.load_identity()
+                    gpu.matrix.load_projection_matrix(mvp_mat)
+
+                    batch = batch_for_shader(flat_shader, 'LINES', { "pos": vtx_pos, "color": vtx_col})
+                    batch.draw(flat_shader)
 
                 vtx_pos = ((int(cursor_pos.x + 1), 0), (int(cursor_pos.x + 1), tex_size[1]))
-                batch = batch_for_shader(flat_shader, 'LINES', { "i_position": vtx_pos, "i_color": vtx_col})
-                batch.draw(flat_shader)
+                with gpu.matrix.push_pop():
+                    gpu.matrix.load_identity()
+                    gpu.matrix.load_projection_matrix(mvp_mat)
+
+                    batch = batch_for_shader(flat_shader, 'LINES', { "pos": vtx_pos, "color": vtx_col})
+                    batch.draw(flat_shader)
+
             # Draw box around selection
             elif VIEW3D_OP_SprytileGui.is_moving is False:
                 cursor_min, cursor_max = VIEW3D_OP_SprytileGui.get_sel_bounds(grid_size, padding, margin,
@@ -813,7 +770,6 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
 
         # First, draw the world grid size overlay
         flat_shader.bind()
-        flat_shader.uniform_float("u_modelViewProjectionMatrix", mvp_mat)
         paint_up_vector = sprytile_data.paint_up_vector
         paint_right_vector = sprytile_data.paint_normal_vector.cross(paint_up_vector)
 
@@ -835,8 +791,12 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
 
             vcol = (color,)*2
             vpos = ((start.x, start.y), (end.x, end.y))
-            batch = batch_for_shader(flat_shader, 'LINES', { "i_position": vpos, "i_color": vcol})
-            batch.draw(flat_shader)
+            with gpu.matrix.push_pop():
+                gpu.matrix.load_identity()
+                gpu.matrix.load_projection_matrix(mvp_mat)
+
+                batch = batch_for_shader(flat_shader, 'LINES', { "pos": vpos, "color": vcol})
+                batch.draw(flat_shader)
 
         plane_col = sprytile_data.axis_plane_color
         color = (plane_col[0], plane_col[1], plane_col[2], 1)
@@ -866,8 +826,13 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
 
         vcol = (color,)*5
         vpos = ((p0.x, p0.y), (p1.x, p1.y), (p2.x, p2.y), (p3.x, p3.y), (p0.x, p0.y))
-        batch = batch_for_shader(flat_shader, 'LINE_STRIP', { "i_position": vpos, "i_color": vcol})
-        batch.draw(flat_shader)
+
+        with gpu.matrix.push_pop():
+                gpu.matrix.load_identity()
+                gpu.matrix.load_projection_matrix(mvp_mat)
+
+                batch = batch_for_shader(flat_shader, 'LINE_STRIP', { "pos": vpos, "color": vcol})
+                batch.draw(flat_shader)
 
     @staticmethod
     def draw_tile_select_ui(mvp_mat, view_min, view_max, view_size,
@@ -905,19 +870,22 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
             y_end = y_divs * cell_size[1]
 
             flat_shader.bind()
-            flat_shader.uniform_float("u_modelViewProjectionMatrix", grid_mat)
-            for x in range(x_divs + 1):
-                x_pos = (x * cell_size[0])
-                vtxs = ((x_pos, 0), (x_pos, y_end))
-                vcol = (color,)*2
-                batch = batch_for_shader(flat_shader, 'LINES', { "i_position": vtxs, "i_color": vcol})
-                batch.draw(flat_shader)
-            for y in range(y_divs + 1):
-                y_pos = (y * cell_size[1])
-                vtxs = ((0, y_pos), (x_end, y_pos))
-                vcol = (color,)*2
-                batch = batch_for_shader(flat_shader, 'LINES', { "i_position": vtxs, "i_color": vcol})
-                batch.draw(flat_shader)
+            with gpu.matrix.push_pop():
+                gpu.matrix.load_identity()
+                gpu.matrix.load_projection_matrix(grid_mat)
+           
+                for x in range(x_divs + 1):
+                    x_pos = (x * cell_size[0])
+                    vtxs = ((x_pos, 0), (x_pos, y_end))
+                    vcol = (color,)*2
+                    batch = batch_for_shader(flat_shader, 'LINES', { "pos": vtxs, "color": vcol})
+                    batch.draw(flat_shader)
+                for y in range(y_divs + 1):
+                    y_pos = (y * cell_size[1])
+                    vtxs = ((0, y_pos), (x_end, y_pos))
+                    vcol = (color,)*2
+                    batch = batch_for_shader(flat_shader, 'LINES', { "pos": vtxs, "color": vcol})
+                    batch.draw(flat_shader)
 
         # Draw selected tile outline
         sel_min, sel_max = VIEW3D_OP_SprytileGui.get_sel_bounds(grid_size, padding, margin,
@@ -984,12 +952,13 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
             # Draw polygon
             image_shader.bind()
 
-            vercol = (color,)*len(uvs)
-            batch = batch_for_shader(image_shader, 'TRI_FAN', { "i_position": vtxs, "i_color": vercol, "i_uv": uvs})
-            image_shader.uniform_float("u_modelViewProjectionMatrix", mvp_mat)
-            image_shader.uniform_int("u_image", 0)
-            image_shader.uniform_float("u_correct", 1.0)
-            batch.draw(image_shader)
+            with gpu.matrix.push_pop():
+                gpu.matrix.load_identity()
+                gpu.matrix.load_projection_matrix(mvp_mat)
+
+                batch = batch_for_shader(image_shader, 'TRI_FAN', { "pos": vtxs, "texCoord": uvs})
+                image_shader.uniform_float("color", color)
+                batch.draw(image_shader)
 
     @staticmethod
     def draw_to_viewport(view_min, view_max, show_extra, label_counter, tilegrid, sprytile_data,
@@ -1012,11 +981,11 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         #bgl.glBindTexture(bgl.GL_TEXTURE_2D, VIEW3D_OP_SprytileGui.texture)
 
         # Backup texture settings
-        old_mag_filter = bgl.Buffer(bgl.GL_INT, 1)
+        #old_mag_filter = bgl.Buffer(bgl.GL_INT, 1)
         #bgl.glGetTexParameteriv(bgl.GL_TEXTURE_2D, bgl.GL_TEXTURE_MAG_FILTER, old_mag_filter)
 
-        old_wrap_S = bgl.Buffer(bgl.GL_INT, 1)
-        old_wrap_T = bgl.Buffer(bgl.GL_INT, 1)
+        #old_wrap_S = bgl.Buffer(bgl.GL_INT, 1)
+        #old_wrap_T = bgl.Buffer(bgl.GL_INT, 1)
 
         #bgl.glGetTexParameteriv(bgl.GL_TEXTURE_2D, bgl.GL_TEXTURE_WRAP_S, old_wrap_S)
         #bgl.glGetTexParameteriv(bgl.GL_TEXTURE_2D, bgl.GL_TEXTURE_WRAP_T, old_wrap_T)
@@ -1032,6 +1001,8 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         #bgl.glTexParameteri(bgl.GL_TEXTURE_2D, bgl.GL_TEXTURE_WRAP_T, bgl.GL_REPEAT)
        # bgl.glEnable(bgl.GL_TEXTURE_2D)
         #bgl.glEnable(bgl.GL_BLEND)
+
+        gpu.state.blend_set('ALPHA')
 
         # Draw the preview tile
         if middle_btn is False:
