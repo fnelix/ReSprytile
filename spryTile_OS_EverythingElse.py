@@ -227,7 +227,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         return {ret_val}
 
     def exit(self, context):
-        VIEW3D_OP_SprytileGui.handler_remove(self, context)
+        VIEW3D_OP_SprytileGui.handler_remove()
         VIEW3D_OP_SprytileGui.is_running = False
         VIEW3D_OP_SprytileGui.tile_ui_active = False
         if hasattr(self, "win_timer"):
@@ -236,28 +236,25 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
             context.area.tag_redraw()
 
     def set_zoom_level(self, context, zoom_shift):
-        MAX_ZOOM_LEVEL = 1.0 #hack: Define maximum zoom
         region = context.region
         zoom_level = context.scene.sprytile_ui.zoom
         zoom_level = self.calc_zoom(region, zoom_level, zoom_shift)
 
-        zoom_level = min(zoom_level, MAX_ZOOM_LEVEL) #hack: Limit Zoom
-
         display_size = VIEW3D_OP_SprytileGui.display_size
 
         calc_size = round(display_size[0] * zoom_level), round(display_size[1] * zoom_level)
-        height_min = min(256, display_size[1])
+        height_min = min(96, display_size[1])
+
+        # limit min. zoom: palette height will be >= height_min
         while calc_size[1] < height_min:
             zoom_level = self.calc_zoom(region, zoom_level, 1)
             calc_size = round(display_size[0] * zoom_level), round(display_size[1] * zoom_level)
 
-            zoom_level = min(zoom_level, MAX_ZOOM_LEVEL) #hack: Limit Zoom
-
-        while calc_size[0] > region.width*3 or calc_size[1] > region.height*3:
+        # limit max. zoom: half palette size / 2 will be <= window size
+        # (makes sense with calc_palette_pos keeping at least half palette size in view)
+        while calc_size[0] > region.width*2 or calc_size[1] > region.height*2:
             zoom_level = self.calc_zoom(region, zoom_level, -1)
             calc_size = round(display_size[0] * zoom_level), round(display_size[1] * zoom_level)
-
-            zoom_level = min(zoom_level, MAX_ZOOM_LEVEL) #hack: Limit Zoom
 
         # Before setting new zoom, calculate palette position
         display_offset, display_size, size_half, display_min, display_max = self.calc_palette_pos(context)
@@ -344,8 +341,13 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
 
         size_half = Vector((int(display_size[0]/2), int(display_size[1]/2)))
 
-        display_min = Vector((display_pad_y/3 + size_half.x/3, display_pad_y/3 + size_half.y/3))
-        display_max = Vector((context.region.width*3 - display_pad_x*3 - size_half.x*3, context.region.height*3 - display_pad_y*3 - size_half.y*3))
+        # always keep full palette in view
+        #display_min = Vector(( (display_pad_x + size_half.x), (display_pad_y + size_half.y) ))
+        #display_max = Vector(( (context.region.width - display_pad_x - size_half.x), (context.region.height - display_pad_y - size_half.y) ))
+
+        # keep at least half of palette in view
+        display_min = Vector(( display_pad_x, display_pad_y ))
+        display_max = Vector(( context.region.width - display_pad_x, context.region.height - display_pad_y  ))
 
         display_offset = Vector((context.scene.sprytile_ui.palette_pos[0], context.scene.sprytile_ui.palette_pos[1]))
 
@@ -577,7 +579,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
                                                         'WINDOW', 'POST_PIXEL')
 
     @staticmethod
-    def handler_remove(self, context):
+    def handler_remove():
         if hasattr(VIEW3D_OP_SprytileGui, "draw_callback") and VIEW3D_OP_SprytileGui.draw_callback is not None:
             bpy.types.SpaceView3D.draw_handler_remove(VIEW3D_OP_SprytileGui.draw_callback, 'WINDOW')
         VIEW3D_OP_SprytileGui.draw_callback = None
@@ -587,7 +589,16 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         """Callback handler"""
         if not VIEW3D_OP_SprytileGui.is_running:
             return
-
+    
+        # workaround for crash when opening new file etc.: 
+        # operator is invalid? remove handler
+        if repr(self).endswith("invalid>"):
+            VIEW3D_OP_SprytileGui.handler_remove()
+            VIEW3D_OP_SprytileGui.is_running = False
+            VIEW3D_OP_SprytileGui.tile_ui_active = False
+           
+            return
+    
         sprytile_data = context.scene.sprytile_data
         show_extra = sprytile_data.show_extra or sprytile_data.show_overlay
         tilegrid = sprytile_utils.get_selected_grid(context)
